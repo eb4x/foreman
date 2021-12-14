@@ -1,0 +1,20 @@
+<%#
+name: kickstart_ifcfg_bridged_interface
+model: ProvisioningTemplate
+snippet: true
+model: ProvisioningTemplate
+kind: snippet
+description: |
+  Generates the ifcfg configuration file for an interface attached to a bridge.
+  This is typically used by other templates and snippets that pass interface
+  object to be configured. It is not expected to be used directly.
+-%>
+<%= snippet('kickstart_ifcfg_generic_interface', :variables => {
+                  :interface => @interface,
+                  :subnet => @subnet,
+                  :subnet6 => @subnet6,
+                  :dhcp => @dhcp }) -%>
+<%-   if ( @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.major.to_i <= 7 ) -%>
+<%=     "NM_CONTROLLED=no" %>
+<%-   end -%>
+BRIDGE=<%= @bridge_identifier %>

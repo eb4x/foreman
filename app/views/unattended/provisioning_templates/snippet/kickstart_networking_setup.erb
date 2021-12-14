@@ -34,19 +34,50 @@ description: |
 <%-   end -%>
 <%- end -%>
 
+<%- bridge_interfaces = [] -%>
+<%- bridged_interfaces = [] -%>
+<%- @host.bridge_interfaces.each do |bridge| -%>
+<%-   bridge_interfaces.push(bridge.identifier) -%>
+<%=   "# #{bridge.identifier} interface" %>
+<%=   snippet('kickstart_ifcfg_get_identifier_names', :variables => { :identifier => bridge.identifier }) %>
+<%-   ifcfg = snippet('kickstart_ifcfg_bridge_interface', :variables => {
+                        :interface => bridge,
+                        :subnet => bridge.subnet,
+                        :subnet6 => bridge.subnet6,
+                        :dhcp => bridge.subnet.nil? ? false : bridge.subnet.dhcp_boot_mode? }) -%>
+<%=   save_to_file('/etc/sysconfig/network-scripts/ifcfg-$sanitized_real', ifcfg) %>
+<%-   @host.interfaces_with_identifier(bridge.attached_devices_identifiers).each do |interface| -%>
+<%-     next if !interface.managed? -%>
+<%=     "# #{interface.identifier} interface" %>
+<%=     snippet('kickstart_ifcfg_get_identifier_names', :variables => { :interface => interface }) -%>
+<%-     ifcfg = snippet('kickstart_ifcfg_bridged_interface', :variables => {
+                          :interface => interface,
+                          :subnet => interface.subnet,
+                          :subnet6 => interface.subnet6,
+                          :dhcp => false,
+                          :bridge_identifier => bridge.identifier }) %>
+<%=     save_to_file('/etc/sysconfig/network-scripts/ifcfg-$sanitized_real', ifcfg) %>
+<%-     bridged_interfaces.push(interface.identifier) %>
+<%-   end -%>
+<%- end -%>
+
 <%- @host.managed_interfaces.each do |interface| %>
 <%-   next if !interface.managed? -%>
 <%-   next if bonded_interfaces.include?(interface.identifier) -%>
+<%-   next if bridged_interfaces.include?(interface.identifier) -%>
 
 <%-   bond_identifier = @host.bond_interfaces.map { |i| i.identifier }.include?(interface.attached_to) ? interface.identifier : nil %>
+<%-   bridge_identifier = @host.bridge_interfaces.map { |i| i.identifier }.include?(interface.attached_to) ? interface.identifier : nil %>
 <%=   "# #{interface.identifier} interface" %>
-<%=   snippet('kickstart_ifcfg_get_identifier_names', :variables => { :interface => interface, :identifier => bond_identifier }) -%>
+<%=   snippet('kickstart_ifcfg_get_identifier_names', :variables => { :interface => interface, :identifier => bond_identifier || bridge_identifier }) -%>
 <%-   ifcfg = snippet('kickstart_ifcfg_generic_interface', :variables => {
                         :interface => interface,
                         :subnet => interface.subnet,
                         :subnet6 => interface.subnet6,
                         :bond_interfaces => bond_interfaces,
+                        :bridge_interfaces => bridge_interfaces,
                         :dhcp => interface.subnet.nil? ? false : interface.subnet.dhcp_boot_mode?,
+                        :attached_to_bridge => bridge_identifier.present?,
                         :attached_to_bond => bond_identifier.present? }) %>
 <%=   save_to_file('/etc/sysconfig/network-scripts/ifcfg-$sanitized_real', ifcfg) %>
 <%- end %>

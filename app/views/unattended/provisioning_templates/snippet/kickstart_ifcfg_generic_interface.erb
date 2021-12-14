@@ -55,7 +55,7 @@ DEFROUTE=<%= primary %>
 <%- end -%>
 <%- if @interface.virtual? && (!@subnet.nil? && (@subnet.has_vlanid? || @interface.vlanid.present?)) -%>
 <%=   "VLAN=yes" %>
-<%-   if @attached_to_bond -%>
+<%-   if @attached_to_bond || @attached_to_bridge -%>
 <%-     if ( @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.major.to_i <= 7 ) -%>
 <%=       "NM_CONTROLLED=no" %>
 <%-     end -%>
