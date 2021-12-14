@@ -38,15 +38,15 @@ description: |
 <%-   next if !interface.managed? -%>
 <%-   next if bonded_interfaces.include?(interface.identifier) -%>
 
-<%-   interface_identifier = @host.bond_interfaces.map { |i| i.identifier }.include?(interface.attached_to) ? interface.identifier : nil %>
+<%-   bond_identifier = @host.bond_interfaces.map { |i| i.identifier }.include?(interface.attached_to) ? interface.identifier : nil %>
 <%=   "# #{interface.identifier} interface" %>
-<%=   snippet('kickstart_ifcfg_get_identifier_names', :variables => { :interface => interface, :identifier => interface_identifier }) -%>
+<%=   snippet('kickstart_ifcfg_get_identifier_names', :variables => { :interface => interface, :identifier => bond_identifier }) -%>
 <%-   ifcfg = snippet('kickstart_ifcfg_generic_interface', :variables => {
                         :interface => interface,
                         :subnet => interface.subnet,
                         :subnet6 => interface.subnet6,
                         :bond_interfaces => bond_interfaces,
                         :dhcp => interface.subnet.nil? ? false : interface.subnet.dhcp_boot_mode?,
-                        :attached_to_bond => interface_identifier.present? }) %>
+                        :attached_to_bond => bond_identifier.present? }) %>
 <%=   save_to_file('/etc/sysconfig/network-scripts/ifcfg-$sanitized_real', ifcfg) %>
 <%- end %>
